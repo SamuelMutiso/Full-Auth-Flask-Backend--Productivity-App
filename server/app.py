@@ -115,11 +115,60 @@ class Notes(Resource):
         return note_schema.dump(note), 201
 
 
+class NoteByID(Resource):
+    def patch(self, id):
+        user_id = session.get("user_id")
+
+        if not user_id:
+            return {"error": "not authorized"}, 401
+
+        note = Note.query.filter(Note.id == id).first()
+
+        if not note:
+            return {"error": "note not found"}, 404
+
+        if note.user_id != user_id:
+            return {"error": "forbidden"}, 403
+
+        data = request.get_json() or {}
+
+        try:
+            for attr in ("title", "content"):
+                if attr in data:
+                    setattr(note, attr, data[attr])
+            db.session.commit()
+        except ValueError as error:
+            db.session.rollback()
+            return {"error": str(error)}, 422
+
+        return note_schema.dump(note), 200
+
+    def delete(self, id):
+        user_id = session.get("user_id")
+
+        if not user_id:
+            return {"error": "not authorized"}, 401
+
+        note = Note.query.filter(Note.id == id).first()
+
+        if not note:
+            return {"error": "note not found"}, 404
+
+        if note.user_id != user_id:
+            return {"error": "forbidden"}, 403
+
+        db.session.delete(note)
+        db.session.commit()
+
+        return {}, 204
+
+
 api.add_resource(Signup, "/signup")
 api.add_resource(Login, "/login")
 api.add_resource(Logout, "/logout")
 api.add_resource(CheckSession, "/check_session")
 api.add_resource(Notes, "/notes")
+api.add_resource(NoteByID, "/notes/<int:id>")
 
 
 if __name__ == "__main__":
