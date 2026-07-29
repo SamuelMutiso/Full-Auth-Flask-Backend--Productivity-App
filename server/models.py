@@ -31,3 +31,28 @@ class User(db.Model):
 
     def __repr__(self):
         return f"<User {self.id} {self.username}>"
+
+class Note(db.Model):
+    __tablename__ = "notes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String, nullable=False)
+    content = db.Column(db.String, nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+
+    @validates("title")
+    def validate_title(self, key, title):
+        if not title or not title.strip():
+            raise ValueError("title must be present")
+        return title
+
+    @validates("content")
+    def validate_content(self, key, content):
+        if not content or not content.strip():
+            raise ValueError("content must be present")
+        return content
+
+    def __repr__(self):
+        return f"<Note {self.id} {self.title}>"
